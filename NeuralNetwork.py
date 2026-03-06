@@ -251,16 +251,15 @@ class Custom_MLP(): # Multilayer Perceptron customizável
 # Seção principal do código --------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-def main(): # Função principal
-    clear() # Limpa o terminal
-    # ---------------------------------------
+def test_perceptron():
     print("\\---------- Teste de Perceptron -----------/")
     the_first_neuron = perceptron(8)
     input_values=[3,4,5,8,1,1,0,0] # Snake: Posição da Head, Posição da Fruit, Se cada uma das 4 direções está ocupada (1) ou não (0)
     output_value = the_first_neuron.output(input_values)
     print(f"Saída: {output_value}")
     the_first_neuron.open_black_box()
-    # ---------------------------------------
+
+def test_builtin_mlp():
     print("\\---------- Teste de MLP -----------/")
     the_first_network = BuiltIn_MLP(8, 3, 4) # Snake: Saída final são 4 valores, 1 pra cada direção
     input_values=[3,4,5,8,1,1,0,0]
@@ -268,7 +267,7 @@ def main(): # Função principal
     print(f"Saída: {output_value}")
     #the_first_network.open_black_box()
 
-    # ---------------------------------------
+def test_custom_mlp():
     print("\\---------- Teste de MLP Customizada -----------/")
     the_custom_network = Custom_MLP([   # Três camadas com tamanhos diferentes
                              Layer(3,8),
@@ -279,6 +278,22 @@ def main(): # Função principal
     output_value = the_custom_network.output(input_values)
     print(f"Saída: {output_value}")
     #the_custom_network.open_black_box()
+
+def test_save_and_load():
+    pass
+
+# ---------------------------------------
+
+def main(): # Função principal
+    clear() # Limpa o terminal
+    # ---------------------------------------
+    test_perceptron()
+    # ---------------------------------------
+    test_builtin_mlp()
+    # ---------------------------------------
+    test_custom_mlp()
+    # ---------------------------------------
+    test_save_and_load()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
