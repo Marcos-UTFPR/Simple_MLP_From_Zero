@@ -391,7 +391,7 @@ def test_save_and_load_with_mlp():
     the_saved_network.architecture_info()
     the_saved_network.open_black_box()
 
-def test_save_and_load_with_logging():
+def test_save_and_load_from_file():
     the_saved_network = Custom_MLP([   # Três camadas com tamanhos diferentes
                              Layer(3,2), # OBS: (número de neurônios, número de entradas)
                              Layer(3,3)   
@@ -424,7 +424,7 @@ def main(): # Função principal
     # ---------------------------------------
     #test_save_and_load_with_mlp()
     # ---------------------------------------
-    test_save_and_load_with_logging()
+    test_save_and_load_from_file()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
