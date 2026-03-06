@@ -40,9 +40,16 @@ def step_function(x):
         return 1
     
 def writeLog(data, file_name):
-    file_log = open(f"{file_name}.txt", "a") # Usado para salvar os pesos em um arquivo TXT
+    data = str(data)
+    file_log = open(f"{file_name}.txt", "w") # Usado para salvar os pesos em um arquivo TXT
     file_log.write(data+'\n')
     file_log.close()
+
+def getWeightsFromLog(file_name): # Tem que ser um txt
+    file_log = open(f"{file_name}.txt")
+    data = file_log.read()
+    file_log.close()
+    return eval(data)
     
 def random_value(min, max):
     return round(random.uniform(min,max), 2) # Arredonda o valor para 2 decimais apenas
@@ -179,7 +186,7 @@ class Layer: # Camada de neurônios
         x=0 # Auxiliar
         for i in range(0,self.neuron_number):
             new_parameters = new_weights[x:x+self.input_number] # Separando os pesos para cada neurônio
-            new_parameters += [new_weights[self.input_number]] # O último depois de cada peso é pra ser o viés
+            new_parameters += [new_weights[x+self.input_number]] # O último depois de cada peso é pra ser o viés
             x+=self.input_number+1 # Recomeça a partir do viés
             self.neurons[i].load(new_parameters)
 
@@ -240,7 +247,7 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
             self.layers[i].load(new_parameters)
 
     # ---------------------------------------
-    
+
 # ----------------------------------------------------------------------------------------------------
 
 class Custom_MLP(): # Multilayer Perceptron customizável
@@ -384,6 +391,22 @@ def test_save_and_load_with_mlp():
     the_saved_network.architecture_info()
     the_saved_network.open_black_box()
 
+def test_save_and_load_with_logging():
+    the_saved_network = Custom_MLP([   # Três camadas com tamanhos diferentes
+                             Layer(3,2), # OBS: (número de neurônios, número de entradas)
+                             Layer(3,3)   
+                        ])
+    try:
+        pre_weights = getWeightsFromLog("test_weights") # Pegando os pesos
+        print(f"Pesos antigos: {pre_weights}")
+    except FileNotFoundError:
+        pass
+    else:
+        the_saved_network.load(pre_weights) # Carregando os pesos
+    weights = the_saved_network.save()
+    #writeLog(weights, "test_weights") # Salvando pesos
+    the_saved_network.open_black_box()
+
 # ---------------------------------------
 
 def main(): # Função principal
@@ -399,7 +422,9 @@ def main(): # Função principal
     # ---------------------------------------
     #test_save_and_load_with_layer()
     # ---------------------------------------
-    test_save_and_load_with_mlp()
+    #test_save_and_load_with_mlp()
+    # ---------------------------------------
+    test_save_and_load_with_logging()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
