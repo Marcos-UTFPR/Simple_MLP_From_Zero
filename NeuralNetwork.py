@@ -114,7 +114,8 @@ class perceptron:
     # ---------------------------------------
 
     def save(self):
-        return self.weights # Só retorna o valor, a classe MLP é responsável por salvar em arquivo
+        weights = self.weights + [self.bias] # Pesos + Viés
+        return  # Só retorna o valor, a classe MLP é responsável por salvar em arquivo
 
     # ---------------------------------------
 
@@ -123,6 +124,7 @@ class perceptron:
             raise InvalidInputSizeException
         for i in range(0,len(self.weights)):
             self.weights[i] = new_weights[i]
+        self.bias = self.weights[-1] # Em teoria, o viés é o último valor entre os pesos
 
     # ---------------------------------------
 
@@ -175,7 +177,8 @@ class Layer: # Camada de neurônios
         x=0 # Auxiliar
         for i in range(0,self.neuron_number):
             new_parameters = new_weights[x:x+self.input_number] # Separando os pesos para cada neurônio
-            x+=self.input_number
+            new_parameters += [new_weights[self.input_number]] # O último depois de cada peso é pra ser o viés
+            x+=self.input_number+1
             self.neurons[i].load(new_parameters)
 
     # ---------------------------------------
@@ -266,7 +269,10 @@ class Custom_MLP(): # Multilayer Perceptron customizável
     # ---------------------------------------
 
     def save(self):
-        pass
+        weights = []
+        for layer in self.layers:
+            weights += layer.save() # Retorna os pesos
+        return weights # Retorna os pesos dos neurônios de cada camada em ordem
 
     # ---------------------------------------
 
@@ -298,9 +304,9 @@ def test_builtin_mlp():
 def test_custom_mlp():
     print("\\---------- Teste de MLP Customizada -----------/")
     the_custom_network = Custom_MLP([   # Três camadas com tamanhos diferentes
-                             Layer(3,8),
+                             Layer(3,8), # OBS: (número de neurônios, número de entradas)
                              Layer(4,3),
-                             Layer(4,4)   
+                             Layer(4,4)  # OBS: número de neurônios da última camada vai ser o tamanho da saída 
                         ])
     input_values=[3,4,5,8,1,1,0,0]
     output_value = the_custom_network.output(input_values)
@@ -346,7 +352,15 @@ def test_save_and_load_with_layer():
     the_layers_network.open_black_box()
 
 def test_save_and_load_with_mlp():
-    pass
+    weights = [0.68, 1.28, 0.98, 0.86, 1.32, 1.17,
+               0.46, -0.35, 0.96, 0.65, 0.07, 0.82, 0.36, -0.58, -0.23] # Pesos de testes para as duas camadas
+    the_saved_network = Custom_MLP([   # Três camadas com tamanhos diferentes
+                             Layer(3,2), # OBS: (número de neurônios, número de entradas)
+                             Layer(3,3)   
+                        ])
+    pre_weights = the_saved_network.save()
+    print(f"Pesos da Rede: {pre_weights}")
+    the_saved_network.open_black_box()
 
 # ---------------------------------------
 
@@ -361,7 +375,7 @@ def main(): # Função principal
     # ---------------------------------------
     #test_save_and_load_with_perceptron()
     # ---------------------------------------
-    test_save_and_load_with_layer()
+    #test_save_and_load_with_layer()
     # ---------------------------------------
     test_save_and_load_with_mlp()
 
