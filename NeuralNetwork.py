@@ -24,10 +24,10 @@ END = '\033[0m'
 # Exceções -------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-class CustomException(Exception):
-    def __init__(self, message=("CustomException")):
+class InvalidInputSizeException(Exception):
+    def __init__(self, message=("Invalid Input Size!")):
         # Call the base class constructor with the parameters it needs
-        super(CustomException, self).__init__(message)
+        super(InvalidInputSizeException, self).__init__(message)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
@@ -92,7 +92,8 @@ class perceptron:
     # ---------------------------------------
 
     def output(self, inputs):
-        assert len(inputs) == (self.input_number)
+        if len(inputs) != (self.input_number):
+            raise InvalidInputSizeException
         outputs = []
         final_output = 0
         for i in range(0,self.input_number): # Número de entradas esperadas nesse neurônio
@@ -113,12 +114,15 @@ class perceptron:
     # ---------------------------------------
 
     def save(self):
-        pass
+        return self.weights # Só retorna o valor, a classe MLP é responsável por salvar em arquivo
 
     # ---------------------------------------
 
     def load(self, new_weights):
-        pass
+        if len(new_weights) != len(self.weights):
+            raise InvalidInputSizeException
+        for i in range(0,len(self.weights)):
+            self.weights[i] = new_weights[i]
 
     # ---------------------------------------
 
@@ -140,7 +144,8 @@ class Layer: # Camada de neurônios
 
     def output(self,inputs):
         #print(f"Teste do assert: {len(inputs)} e {self.input_number}")
-        assert len(inputs) == self.input_number
+        if len(inputs) != self.input_number:
+            raise InvalidInputSizeException
         final_outputs = []
         for neuron in self.neurons:
             final_outputs.append(neuron.output(inputs))
@@ -182,7 +187,8 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
     # ---------------------------------------
 
     def output(self,inputs):
-        assert len(inputs) == self.input_number
+        if len(inputs) != self.input_number:
+            raise InvalidInputSizeException
         final_outputs = None
         for layer in self.layers:
             inputs = layer.output(inputs) # Saída de uma camada é entrada da próxima
@@ -216,12 +222,13 @@ class Custom_MLP(): # Multilayer Perceptron customizável
         for layer in self.layers:
             #print(f"Teste do assert: {str(type(layer))} e {type(layer)}")
             if str(type(layer)) != "<class '__main__.Layer'>":
-                raise TypeError
+                raise InvalidInputSizeException
 
      # ---------------------------------------
 
     def output(self,inputs):
-        assert len(inputs) == self.layers[0].input_number # Vê o tamanho da entrada da primeira camada
+        if len(inputs) != self.layers[0].input_number: # Vê o tamanho da entrada da primeira camada
+            raise InvalidInputSizeException
         final_outputs = None
         for layer in self.layers:
             inputs = layer.output(inputs) # Saída de uma camada é entrada da próxima
@@ -279,7 +286,28 @@ def test_custom_mlp():
     print(f"Saída: {output_value}")
     #the_custom_network.open_black_box()
 
-def test_save_and_load():
+def test_save_and_load_with_perceptron():
+    print("Primeiro neurônio...")
+    the_saved_neuron = perceptron(3)
+    input_values=[3,4,5] # Snake: Posição da Head, Posição da Fruit, Se cada uma das 4 direções está ocupada (1) ou não (0)
+    output_value = the_saved_neuron.output(input_values)
+    the_saved_neuron.open_black_box()
+    print(f"Saída 1: {output_value}")
+    weights = the_saved_neuron.save()
+    print(f"Pesos: {weights}")
+    # -----
+    print("Segundo neurônio...")
+    the_second_neuron = perceptron(3)
+    the_second_neuron.open_black_box()
+    output_value = the_second_neuron.output(input_values)
+    print(f"Saída 2: {output_value}")
+    print("Carregando pesos do neurônio anterior...")
+    the_second_neuron.load(weights)
+    the_second_neuron.open_black_box()
+    output_value = the_second_neuron.output(input_values)
+    print(f"Saída 3: {output_value}")
+
+def test_save_and_load_with_mlp():
     pass
 
 # ---------------------------------------
@@ -287,13 +315,15 @@ def test_save_and_load():
 def main(): # Função principal
     clear() # Limpa o terminal
     # ---------------------------------------
-    test_perceptron()
+    #test_perceptron()
     # ---------------------------------------
-    test_builtin_mlp()
+    #test_builtin_mlp()
     # ---------------------------------------
-    test_custom_mlp()
+    #test_custom_mlp()
     # ---------------------------------------
-    test_save_and_load()
+    #test_save_and_load_with_perceptron()
+    # ---------------------------------------
+    test_save_and_load_with_mlp()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
