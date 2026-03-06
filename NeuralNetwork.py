@@ -135,7 +135,7 @@ class Layer: # Camada de neurônios
         self.neuron_number = neuron_number
         self.neurons = []
         for i in range (0, neuron_number):
-            self.neurons.append(perceptron(input_number))
+            self.neurons.append(perceptron(input_number)) # OBS: Todos os neurônios tem o mesmo tamanho de entrada (densamente conectada)
 
     def __iter__(self):
         return self
@@ -162,12 +162,21 @@ class Layer: # Camada de neurônios
     # ---------------------------------------
 
     def save(self):
-        pass
+        weights = []
+        for neuron in self.neurons:
+            weights += neuron.save() # Retorna os pesos
+        return weights # Retorna os pesos dos neurônios em ordem
 
     # ---------------------------------------
 
-    def load(self):
-        pass
+    def load(self, new_weights):
+        if len(new_weights) != (self.input_number*self.neuron_number): # Pesos totais = Entrada * N° de neurônios
+            raise InvalidInputSizeException
+        x=0 # Auxiliar
+        for i in range(0,self.neuron_number):
+            new_parameters = new_weights[x:x+self.input_number] # Separando os pesos para cada neurônio
+            x+=self.input_number
+            self.neurons[i].load(new_parameters)
 
     # ---------------------------------------
 
@@ -201,6 +210,12 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
         print(f"\t\tMultilayer Perceptron")
         for i in range(0,len(self.layers)):
             self.layers[i].open_black_box(i)
+
+    # ---------------------------------------
+
+    def architecture_info(self):
+        for i in range(0,len(self.layers)):
+            print(f"Camada {i+1}: {self.layers[i].neuron_number}") # Todas tem o mesmo tamanho aqui na verdade
 
     # ---------------------------------------
 
@@ -241,6 +256,12 @@ class Custom_MLP(): # Multilayer Perceptron customizável
         print(f"\t\tMultilayer Perceptron")
         for i in range(0,len(self.layers)):
             self.layers[i].open_black_box(i)
+
+    # ---------------------------------------
+
+    def architecture_info(self):
+        for i in range(0,len(self.layers)):
+            print(f"Camada {i+1}: {self.layers[i].neuron_number}")
 
     # ---------------------------------------
 
@@ -307,6 +328,23 @@ def test_save_and_load_with_perceptron():
     output_value = the_second_neuron.output(input_values)
     print(f"Saída 3: {output_value}")
 
+def test_save_and_load_with_layer():
+    test_layer = Layer(3,8)
+    weights = test_layer.save()
+    print(f"Pesos da Camada 0: {weights}")
+    weights = [0.68, 1.28, 0.98, 0.86, 1.32, 1.17, 0.46, -0.35, 
+               0.96, 0.65, 0.07, 0.82, 0.36, -0.58, -0.23, 0.64, 
+               -0.22, 1.39, 0.93, -0.13, 0.47, 0.04, -1.74, -0.67] # Pesos de testes para 3 neurônios com 8 entradas
+    test_layer.load(weights)
+    print(f"Novos pesos da Camada 0: {weights}")
+    the_layers_network = Custom_MLP([   # Três camadas com tamanhos diferentes
+                             test_layer, # OBS: (número de neurônios, número de entradas)
+                             Layer(4,3),
+                             Layer(4,4)   
+                        ])
+    the_layers_network.architecture_info()
+    the_layers_network.open_black_box()
+
 def test_save_and_load_with_mlp():
     pass
 
@@ -322,6 +360,8 @@ def main(): # Função principal
     #test_custom_mlp()
     # ---------------------------------------
     #test_save_and_load_with_perceptron()
+    # ---------------------------------------
+    test_save_and_load_with_layer()
     # ---------------------------------------
     test_save_and_load_with_mlp()
 
