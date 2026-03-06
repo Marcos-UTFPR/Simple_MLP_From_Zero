@@ -39,6 +39,11 @@ def step_function(x):
     elif x >= 0:
         return 1
     
+def writeLog(data, file_name):
+    file_log = open(f"{file_name}.txt", "a") # Usado para salvar os pesos em um arquivo TXT
+    file_log.write(data+'\n')
+    file_log.close()
+    
 def random_value(min, max):
     return round(random.uniform(min,max), 2) # Arredonda o valor para 2 decimais apenas
 
@@ -107,6 +112,16 @@ class perceptron:
 
     # ---------------------------------------
 
+    def save(self):
+        pass
+
+    # ---------------------------------------
+
+    def load(self, new_weights):
+        pass
+
+    # ---------------------------------------
+
 # ----------------------------------------------------------------------------------------------------
 
 class Layer: # Camada de neurônios
@@ -138,6 +153,18 @@ class Layer: # Camada de neurônios
         for i in range(0, len(self.neurons)):
             print(f"-Neurônio {i+1}:")
             self.neurons[i].open_black_box()
+
+    # ---------------------------------------
+
+    def save(self):
+        pass
+
+    # ---------------------------------------
+
+    def load(self):
+        pass
+
+    # ---------------------------------------
 
 # ----------------------------------------------------------------------------------------------------
 
@@ -171,6 +198,15 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
     # ---------------------------------------
 
+    def save(self):
+        pass
+
+    # ---------------------------------------
+
+    def load(self):
+        pass
+
+    # ---------------------------------------
 # ----------------------------------------------------------------------------------------------------
 
 class Custom_MLP(): # Multilayer Perceptron customizável
@@ -198,6 +234,16 @@ class Custom_MLP(): # Multilayer Perceptron customizável
         print(f"\t\tMultilayer Perceptron")
         for i in range(0,len(self.layers)):
             self.layers[i].open_black_box(i)
+
+    # ---------------------------------------
+
+    def save(self):
+        pass
+
+    # ---------------------------------------
+
+    def load(self):
+        pass
 
     # ---------------------------------------
 
