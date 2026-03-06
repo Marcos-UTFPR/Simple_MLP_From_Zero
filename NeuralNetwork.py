@@ -115,7 +115,7 @@ class perceptron:
 
     def save(self):
         weights = self.weights + [self.bias] # Pesos + Viés
-        return  # Só retorna o valor, a classe MLP é responsável por salvar em arquivo
+        return weights # Só retorna o valor, a classe MLP é responsável por salvar em arquivo
 
     # ---------------------------------------
 
@@ -178,7 +178,7 @@ class Layer: # Camada de neurônios
         for i in range(0,self.neuron_number):
             new_parameters = new_weights[x:x+self.input_number] # Separando os pesos para cada neurônio
             new_parameters += [new_weights[self.input_number]] # O último depois de cada peso é pra ser o viés
-            x+=self.input_number+1
+            x+=self.input_number+1 # Recomeça a partir do viés
             self.neurons[i].load(new_parameters)
 
     # ---------------------------------------
