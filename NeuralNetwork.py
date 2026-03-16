@@ -36,14 +36,29 @@ class InvalidInputSizeException(Exception):
 # Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-def step_function(x):
+def step_function(x): # Função de ativação básica
     if x < 0:
         return 0
     elif x >= 0:
         return 1
 
-def relu(x):
+def relu(x): # Função de ativação ReLU
     return max(0, x)
+
+def basic_error(expected_values, predicted_values): # Função de cálculo de erro básica
+    if len(expected_values) != len(predicted_values):
+        #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+        raise InvalidInputSizeException
+    errors = []
+    for i in range(0, len(expected_values)):
+        errors.append(predicted_values[i]-expected_values[i])
+    return errors
+
+def mse(expected_values, predicted_values): # Mean Squared Error (MSE)
+    errors = basic_error(expected_values, predicted_values)
+    for i in range(0, len(errors)):
+        errors[i] = errors[i] ** 2
+    return errors
     
 def writeLog(data, file_name):
     data = str(data)
@@ -424,7 +439,9 @@ def test_training():
     expected_output = [0.85, 1.32, 0.73, 0]
     output_value = the_custom_network.output(input_values)
     # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
-    print(f"Saída: {output_value}")
+    print(f"Saída predita: {output_value}")
+    print(f"Saída esperada: {expected_output}")
+    print(f"Erros: {mse(expected_output, output_value)}")
 
 # ---------------------------------------
 
