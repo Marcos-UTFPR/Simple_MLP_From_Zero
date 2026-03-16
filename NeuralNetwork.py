@@ -38,6 +38,9 @@ def step_function(x):
         return 0
     elif x >= 0:
         return 1
+
+def relu(x):
+    return max(0, x)
     
 def writeLog(data, file_name):
     data = str(data)
@@ -85,7 +88,7 @@ def doNothingForApproximately(seconds): # Um time.sleep() bem piorado
 
 class perceptron:
     # Atributos: input_number, weights, bias, activation_function
-    def __init__(self, input_number, activation_function=step_function):
+    def __init__(self, input_number, activation_function=relu):
         self.input_number = input_number # Nome do tipo de peça dela
         self.weights = []
         for i in range(0,input_number): # Número de entradas esperadas nesse neurônio
