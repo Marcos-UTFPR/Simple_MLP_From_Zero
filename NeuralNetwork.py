@@ -23,6 +23,8 @@ END = '\033[0m'
 MAX_WEIGHT = 2  # Valor máximo dos pesos e bias
 MIN_WEIGHT = -2 # Valor mínimo dos pesos e bias
 
+DEFAULT_LEARNING_RATE = 0.1 # Valor padrão da Taxa de Aprendizado (Default: 0.1)
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Exceções -------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -33,7 +35,7 @@ class InvalidInputSizeException(Exception):
         super(InvalidInputSizeException, self).__init__(message)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
-# Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
+# Funções de Ativação --------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 def step_function(x): # Função de ativação básica
@@ -44,6 +46,12 @@ def step_function(x): # Função de ativação básica
 
 def relu(x): # Função de ativação ReLU
     return max(0, x)
+
+DEFAULT_ACTIVATION_FUNCTION = relu 
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Funções de erro ------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 def basic_error(expected_values, predicted_values): # Função de cálculo de erro básica
     if len(expected_values) != len(predicted_values):
@@ -59,6 +67,12 @@ def mse(expected_values, predicted_values): # Mean Squared Error (MSE)
     for i in range(0, len(errors)):
         errors[i] = errors[i] ** 2
     return errors
+
+DEFAULT_ERROR_FUNCTION = mse
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
     
 def writeLog(data, file_name):
     data = str(data)
@@ -106,7 +120,7 @@ def doNothingForApproximately(seconds): # Um time.sleep() bem piorado
 
 class perceptron:
     # Atributos: input_number, weights, bias, activation_function
-    def __init__(self, input_number, activation_function=relu):
+    def __init__(self, input_number, activation_function=DEFAULT_ACTIVATION_FUNCTION):
         self.input_number = input_number # Nome do tipo de peça dela
         self.weights = []
         for i in range(0,input_number): # Número de entradas esperadas nesse neurônio
@@ -217,11 +231,12 @@ class Layer: # Camada de neurônios
 
 class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônios, gerando uma saída de tamanho Y (Y = neuron_number)
     # Atributos: input_number, layer_number, layers, neuron_number
-    def __init__(self, input_number, layer_number, neuron_number):
+    def __init__(self, input_number, layer_number, neuron_number, learning_rate = DEFAULT_LEARNING_RATE):
         self.input_number = input_number
         self.layer_number = layer_number
         self.neuron_number = neuron_number
         self.layers = []
+        self.learning_rate = DEFAULT_LEARNING_RATE
         for i in range(0, layer_number):
             self.layers.append(Layer(neuron_number, input_number))
             input_number = neuron_number
