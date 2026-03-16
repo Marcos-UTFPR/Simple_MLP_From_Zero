@@ -20,6 +20,9 @@ BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 END = '\033[0m'
 
+MAX_WEIGHT = 2  # Valor máximo dos pesos e bias
+MIN_WEIGHT = -2 # Valor mínimo dos pesos e bias
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Exceções -------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -92,8 +95,8 @@ class perceptron:
         self.input_number = input_number # Nome do tipo de peça dela
         self.weights = []
         for i in range(0,input_number): # Número de entradas esperadas nesse neurônio
-            self.weights.append(random_value(-2,2))
-        self.bias = random_value(-2,2)
+            self.weights.append(random_value(MIN_WEIGHT,MAX_WEIGHT))
+        self.bias = random_value(MIN_WEIGHT,MAX_WEIGHT)
         self.activation_function = activation_function
 
     def __iter__(self):
