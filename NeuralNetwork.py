@@ -410,6 +410,19 @@ def test_save_and_load_from_file():
     #writeLog(weights, "test_weights") # Salvando pesos
     the_saved_network.open_black_box()
 
+def test_training():
+    print("\\---------- Teste de Treinamento -----------/")
+    the_custom_network = Custom_MLP([   # Três camadas com tamanhos diferentes
+                             Layer(3,8), # OBS: (número de neurônios, número de entradas)
+                             Layer(4,3),
+                             Layer(4,4)  # OBS: número de neurônios da última camada vai ser o tamanho da saída 
+                        ])
+    input_values=[3,4,5,8,1,1,0,0]
+    expected_output = [0.85, 1.32, 0.73, 0]
+    output_value = the_custom_network.output(input_values)
+    # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
+    print(f"Saída: {output_value}")
+
 # ---------------------------------------
 
 def main(): # Função principal
@@ -427,7 +440,9 @@ def main(): # Função principal
     # ---------------------------------------
     #test_save_and_load_with_mlp()
     # ---------------------------------------
-    test_save_and_load_from_file()
+    #test_save_and_load_from_file()
+    # ---------------------------------------
+    test_training()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
