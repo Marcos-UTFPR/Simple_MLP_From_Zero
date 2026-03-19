@@ -231,19 +231,20 @@ class Layer: # Camada de neurônios
 
 class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônios, gerando uma saída de tamanho Y (Y = neuron_number)
     # Atributos: input_number, layer_number, layers, neuron_number
-    def __init__(self, input_number, layer_number, neuron_number, learning_rate = DEFAULT_LEARNING_RATE):
+    def __init__(self, input_number, layer_number, neuron_number, learning_rate = DEFAULT_LEARNING_RATE, error_function = DEFAULT_ERROR_FUNCTION):
         self.input_number = input_number
         self.layer_number = layer_number
         self.neuron_number = neuron_number
         self.layers = []
         self.learning_rate = learning_rate
+        self.error_function = error_function
         for i in range(0, layer_number):
             self.layers.append(Layer(neuron_number, input_number))
             input_number = neuron_number
 
     # ---------------------------------------
 
-    def output(self,inputs):
+    def output(self,inputs): # Forward Pass
         if len(inputs) != self.input_number:
             raise InvalidInputSizeException
         final_outputs = None
@@ -284,7 +285,15 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
     # ---------------------------------------
 
-    def backward(self): # Backward Pass, where gradients flow backward through the network to update the weights
+    def backward(self, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
+        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
+        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
+        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
+        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*error term final​)
+        
+        if len(expected_values) != len(predicted_values):
+            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+            raise InvalidInputSizeException
         pass
 
     # ---------------------------------------
@@ -293,9 +302,10 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
 class Custom_MLP(): # Multilayer Perceptron customizável
     # Atributos: input_number, layer_number, layers
-    def __init__(self, layers, learning_rate = DEFAULT_LEARNING_RATE):
+    def __init__(self, layers, learning_rate = DEFAULT_LEARNING_RATE, error_function = DEFAULT_ERROR_FUNCTION):
         self.layers = layers
         self.learning_rate = learning_rate
+        self.error_function = error_function
         for layer in self.layers:
             #print(f"Teste do assert: {str(type(layer))} e {type(layer)}")
             if str(type(layer)) != "<class '__main__.Layer'>":
@@ -344,8 +354,46 @@ class Custom_MLP(): # Multilayer Perceptron customizável
 
     # ---------------------------------------
 
-    def backward(self): # Backward Pass, where gradients flow backward through the network to update the weights
-        pass
+    def backward(self, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
+        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
+        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
+        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
+        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*output error term)
+        
+        if len(expected_values) != len(predicted_values):
+            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+            raise InvalidInputSizeException
+        
+        # Pegando todos os pesos em um formato organizado
+        all_weights = {} # Sim, um dicionário, não lista
+        for i in range(0,len(self.layers)):
+            all_weights[f"Camada {i+1}"] = {} # Sim, outro dicionário dentro do dicionário
+            for j in range(0, len(self.layers[i].neurons)):
+                all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"] = (self.layers[i].neurons[j].weights + [self.layers[i].neurons[j].bias])
+        #print(all_weights)
+
+        layers_list = list(all_weights.keys())
+        for x in range(0, len(predicted_values)):
+            output_unit_error = predicted_values[i]*(1-predicted_values[x])*self.error_function(expected_values, predicted_values)
+            gradient = self.learning_rate * output_unit_error * predicted_values[x]
+            all_weights[layers_list[-1]][f"Neurônio {x+1}"] += gradient # Atualiza o neurônio da saída responsável
+            for i in range(0,len(self.layers)-1): # Não vai até a última camada
+                for j in range(0, len(self.layers[i].neurons)):
+                    # Aqui chegamos nos neurônios em si
+                    hidden_unit_error = None # WIP!!!!!!!!!! (O problema é a saída de cada neurônio)
+                    gradient = self.learning_rate * hidden_unit_error * predicted_values[x]
+                    for k in range(0, len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"])):
+                        # Aqui chegamos nos pesos de cada neurônio
+                        all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k] += gradient
+
+        new_weights = [] # Voltando os pesos para um formato que dá pra carregar usando o método load
+        for i in range(0,len(self.layers)):
+            for j in range(0, len(self.layers[i].neurons)):
+                for weight in all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]:
+                    new_weights.append(weight)
+        #print(new_weights)
+
+        self.load(new_weights) # Carregando os pesos modificados
 
     # ---------------------------------------
 
@@ -468,6 +516,8 @@ def test_training():
     print(f"Saída predita: {output_value}")
     print(f"Saída esperada: {expected_output}")
     print(f"Erros: {mse(expected_output, output_value)}")
+    print("----------------")
+    the_custom_network.backward()
 
 # ---------------------------------------
 
