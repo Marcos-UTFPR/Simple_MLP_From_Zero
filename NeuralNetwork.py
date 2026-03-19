@@ -236,7 +236,7 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
         self.layer_number = layer_number
         self.neuron_number = neuron_number
         self.layers = []
-        self.learning_rate = DEFAULT_LEARNING_RATE
+        self.learning_rate = learning_rate
         for i in range(0, layer_number):
             self.layers.append(Layer(neuron_number, input_number))
             input_number = neuron_number
@@ -284,12 +284,18 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
     # ---------------------------------------
 
+    def backward(self): # Backward Pass, where gradients flow backward through the network to update the weights
+        pass
+
+    # ---------------------------------------
+
 # ----------------------------------------------------------------------------------------------------
 
 class Custom_MLP(): # Multilayer Perceptron customizável
     # Atributos: input_number, layer_number, layers
-    def __init__(self, layers):
+    def __init__(self, layers, learning_rate = DEFAULT_LEARNING_RATE):
         self.layers = layers
+        self.learning_rate = learning_rate
         for layer in self.layers:
             #print(f"Teste do assert: {str(type(layer))} e {type(layer)}")
             if str(type(layer)) != "<class '__main__.Layer'>":
@@ -297,7 +303,7 @@ class Custom_MLP(): # Multilayer Perceptron customizável
 
      # ---------------------------------------
 
-    def output(self,inputs):
+    def output(self,inputs): # Forward Pass
         if len(inputs) != self.layers[0].input_number: # Vê o tamanho da entrada da primeira camada
             raise InvalidInputSizeException
         final_outputs = None
@@ -335,6 +341,11 @@ class Custom_MLP(): # Multilayer Perceptron customizável
             new_parameters = new_weights[x:x+(self.layers[i].input_number*self.layers[i].neuron_number)+self.layers[i].neuron_number] # Separando os pesos para cada neurônio
             x+=(self.layers[i].input_number*self.layers[i].neuron_number)+self.layers[i].neuron_number # neuron_number também é a quantidade de viéses que tem na camada
             self.layers[i].load(new_parameters)
+
+    # ---------------------------------------
+
+    def backward(self): # Backward Pass, where gradients flow backward through the network to update the weights
+        pass
 
     # ---------------------------------------
 
