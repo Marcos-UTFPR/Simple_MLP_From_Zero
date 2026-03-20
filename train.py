@@ -1,7 +1,7 @@
 import time
 import sys
 from Snake import game, player, BLUE, DefeatException
-from NeuralNetwork import Custom_MLP, Layer, DQN_Agent
+from NeuralNetwork import Custom_MLP, Layer, DQN_Agent, writeLog, getWeightsFromLog
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Configurações --------------------------------------------------------------------------------------------------------------------------------------
@@ -103,6 +103,26 @@ def main():
     # Sessão de visualização final — IA jogando sem exploração aleatória
     print("\nSessão final — IA jogando sem aleatoriedade (epsilon = 0)...")
     agente.epsilon = 0.0
+    weights = rede.save()
+    writeLog(weights, "snake_weights") # Salvando pesos treinados
+    input("Pressione Enter para começar...")
+    for partida in range(3):
+        snake = novo_jogo()
+        score = rodar_episodio(snake, visualizar=True)
+        print(f"Partida {partida + 1} — Score final: {score}")
+        time.sleep(1)
+
+def evaluate():
+    # Sessão de visualização final — IA jogando sem exploração aleatória
+    print("\nSessão treinada — IA jogando sem aleatoriedade (epsilon = 0)...")
+    agente.epsilon = 0.0
+    try:
+        pre_weights = getWeightsFromLog("snake_weights") # Pegando os pesos
+        #print(f"Pesos antigos: {pre_weights}")
+    except FileNotFoundError:
+        pass
+    else:
+        rede.load(pre_weights) # Carregando os pesos
     input("Pressione Enter para começar...")
     for partida in range(3):
         snake = novo_jogo()
