@@ -1,3 +1,1 @@
-Just a simplified Neural Network made in Python from zero, without using any external library, only internal modules. Likely the worst Neural Network you will ever see? Very likely.
-
-If you want a Neural Network, it's better to simply use a library like Scikit-Learn or PyTorch. They're far better options.
+This is a very experimental branch I made using Vibe Coding to understand what I was doing wrong with the Backpropagation. I won't use Vibe Coding in the other branches, just this one.

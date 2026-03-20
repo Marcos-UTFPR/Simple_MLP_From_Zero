@@ -7,6 +7,87 @@ import time
 import random
 import math
 
+import random as rand_module
+from collections import deque
+
+GAMMA = 0.9             # Fator de desconto
+EPSILON_START = 1.0     # Exploração inicial (100% aleatório)
+EPSILON_MIN = 0.01      # Exploração mínima
+EPSILON_DECAY = 0.995   # Decay por episódio
+MEMORY_SIZE = 10000     # Tamanho do replay buffer
+BATCH_SIZE = 64         # Amostras por treino
+
+class DQN_Agent:
+    def __init__(self, network):
+        # network é sua Custom_MLP já instanciada
+        self.network = network
+        self.epsilon = EPSILON_START
+        self.memory = deque(maxlen=MEMORY_SIZE)  # Replay buffer
+
+    # --------------------------------------------------
+
+    def escolher_acao(self, estado):
+        # Epsilon-greedy: no início age aleatório, aos poucos usa a rede
+        if rand_module.random() < self.epsilon:
+            return rand_module.randint(0, 3)  # 0=cima, 1=baixo, 2=esq, 3=dir
+        valores_q = self.network.output(estado)
+        return valores_q.index(max(valores_q))  # Ação de maior valor Q
+
+    # --------------------------------------------------
+
+    def memorizar(self, estado, acao, recompensa, proximo_estado, morreu):
+        # Guarda a experiência para replay
+        self.memory.append((estado, acao, recompensa, proximo_estado, morreu))
+
+    # --------------------------------------------------
+
+    def treinar_passo_unico(self, estado, acao, recompensa, proximo_estado, morreu):
+        # Treino imediato após cada ação (sem replay)
+        valores_q_atual = self.network.output(estado)
+
+        if morreu:
+            q_alvo = recompensa
+        else:
+            valores_q_proximo = self.network.output(proximo_estado)
+            q_alvo = recompensa + GAMMA * max(valores_q_proximo)
+
+        # Só altera o Q da ação tomada — as outras ficam iguais
+        expected = list(valores_q_atual)
+        expected[acao] = q_alvo
+
+        self.network.backward(estado, expected, valores_q_atual)
+
+    # --------------------------------------------------
+
+    def treinar_replay(self):
+        # Experience replay: treina num batch aleatório da memória
+        # Estabiliza o treino quebrando correlação entre experiências consecutivas
+        if len(self.memory) < BATCH_SIZE:
+            return  # Aguarda memória encher
+
+        batch = rand_module.sample(list(self.memory), BATCH_SIZE)
+
+        for estado, acao, recompensa, proximo_estado, morreu in batch:
+            valores_q_atual = self.network.output(estado)
+
+            if morreu:
+                q_alvo = recompensa
+            else:
+                valores_q_proximo = self.network.output(proximo_estado)
+                q_alvo = recompensa + GAMMA * max(valores_q_proximo)
+
+            expected = list(valores_q_atual)
+            expected[acao] = q_alvo
+
+            self.network.backward(estado, expected, valores_q_atual)
+
+    # --------------------------------------------------
+
+    def decair_epsilon(self):
+        # Chama isso ao fim de cada episódio (cada partida)
+        if self.epsilon > EPSILON_MIN:
+            self.epsilon *= EPSILON_DECAY
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Constantes -----------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
