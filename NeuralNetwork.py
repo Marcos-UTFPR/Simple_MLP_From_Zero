@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import random
+import math
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Constantes -----------------------------------------------------------------------------------------------------------------------------------------
@@ -20,6 +21,11 @@ BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 END = '\033[0m'
 
+MAX_WEIGHT = 1  # Valor máximo dos pesos e bias (Default: 2)
+MIN_WEIGHT = -1 # Valor mínimo dos pesos e bias (Default: -2)
+
+DEFAULT_LEARNING_RATE = 0.01 # Valor padrão da Taxa de Aprendizado (Default: 0.1)
+
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Exceções -------------------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -30,17 +36,47 @@ class InvalidInputSizeException(Exception):
         super(InvalidInputSizeException, self).__init__(message)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
-# Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
+# Funções de Ativação --------------------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
-def step_function(x):
+def step_function(x): # Função de ativação básica
     if x < 0:
         return 0
     elif x >= 0:
         return 1
 
-def relu(x):
+def relu(x): # Função de ativação ReLU
     return max(0, x)
+
+def sig(x):
+    return 1/(1 + math.exp(-x))
+
+DEFAULT_ACTIVATION_FUNCTION = sig # (Default: sig)
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Funções de erro ------------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+
+def basic_error(expected_values, predicted_values): # Função de cálculo de erro básica
+    if len(expected_values) != len(predicted_values):
+        #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+        raise InvalidInputSizeException
+    errors = []
+    for i in range(0, len(expected_values)):
+        errors.append(predicted_values[i]-expected_values[i])
+    return errors
+
+def mse(expected_values, predicted_values): # Mean Squared Error (MSE)
+    errors = basic_error(expected_values, predicted_values)
+    for i in range(0, len(errors)):
+        errors[i] = errors[i] ** 2
+    return errors
+
+DEFAULT_ERROR_FUNCTION = mse # (Default: mse)
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
     
 def writeLog(data, file_name):
     data = str(data)
@@ -88,12 +124,12 @@ def doNothingForApproximately(seconds): # Um time.sleep() bem piorado
 
 class perceptron:
     # Atributos: input_number, weights, bias, activation_function
-    def __init__(self, input_number, activation_function=relu):
+    def __init__(self, input_number, activation_function=DEFAULT_ACTIVATION_FUNCTION):
         self.input_number = input_number # Nome do tipo de peça dela
         self.weights = []
         for i in range(0,input_number): # Número de entradas esperadas nesse neurônio
-            self.weights.append(random_value(-2,2))
-        self.bias = random_value(-2,2)
+            self.weights.append(random_value(MIN_WEIGHT,MAX_WEIGHT))
+        self.bias = random_value(MIN_WEIGHT,MAX_WEIGHT)
         self.activation_function = activation_function
 
     def __iter__(self):
@@ -199,18 +235,20 @@ class Layer: # Camada de neurônios
 
 class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônios, gerando uma saída de tamanho Y (Y = neuron_number)
     # Atributos: input_number, layer_number, layers, neuron_number
-    def __init__(self, input_number, layer_number, neuron_number):
+    def __init__(self, input_number, layer_number, neuron_number, learning_rate = DEFAULT_LEARNING_RATE, error_function = DEFAULT_ERROR_FUNCTION):
         self.input_number = input_number
         self.layer_number = layer_number
         self.neuron_number = neuron_number
         self.layers = []
+        self.learning_rate = learning_rate
+        self.error_function = error_function
         for i in range(0, layer_number):
             self.layers.append(Layer(neuron_number, input_number))
             input_number = neuron_number
 
     # ---------------------------------------
 
-    def output(self,inputs):
+    def output(self,inputs): # Forward Pass
         if len(inputs) != self.input_number:
             raise InvalidInputSizeException
         final_outputs = None
@@ -251,12 +289,27 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
     # ---------------------------------------
 
+    def backward(self, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
+        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
+        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
+        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
+        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*error term final​)
+        
+        if len(expected_values) != len(predicted_values):
+            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+            raise InvalidInputSizeException
+        pass
+
+    # ---------------------------------------
+
 # ----------------------------------------------------------------------------------------------------
 
 class Custom_MLP(): # Multilayer Perceptron customizável
     # Atributos: input_number, layer_number, layers
-    def __init__(self, layers):
+    def __init__(self, layers, learning_rate = DEFAULT_LEARNING_RATE, error_function = DEFAULT_ERROR_FUNCTION):
         self.layers = layers
+        self.learning_rate = learning_rate
+        self.error_function = error_function
         for layer in self.layers:
             #print(f"Teste do assert: {str(type(layer))} e {type(layer)}")
             if str(type(layer)) != "<class '__main__.Layer'>":
@@ -264,14 +317,26 @@ class Custom_MLP(): # Multilayer Perceptron customizável
 
      # ---------------------------------------
 
-    def output(self,inputs):
+    def output(self,inputs): # Forward Pass
         if len(inputs) != self.layers[0].input_number: # Vê o tamanho da entrada da primeira camada
             raise InvalidInputSizeException
         final_outputs = None
         for layer in self.layers:
             inputs = layer.output(inputs) # Saída de uma camada é entrada da próxima
             final_outputs = inputs
-        return final_outputs # OBS: Tamanho desse vetor é o neuron_number
+        return final_outputs # OBS: Tamanho desse vetor é o neuron_number da última camada
+    
+    # ---------------------------------------
+
+    def output_training(self,inputs): # Output utilizado para propósitos de treinamento, retorna as saídas de todos os neurônio
+        if len(inputs) != self.layers[0].input_number: # Vê o tamanho da entrada da primeira camada
+            raise InvalidInputSizeException
+        final_outputs = []
+        for layer in self.layers:
+            inputs = layer.output(inputs) # Saída de uma camada é entrada da próxima 
+            for input in inputs:
+                final_outputs.append(input) # Salvando todos os pesos
+        return final_outputs # OBS: Tamanho desse vetor é o total de neurônios da rede
     
     # ---------------------------------------
     
@@ -302,6 +367,66 @@ class Custom_MLP(): # Multilayer Perceptron customizável
             new_parameters = new_weights[x:x+(self.layers[i].input_number*self.layers[i].neuron_number)+self.layers[i].neuron_number] # Separando os pesos para cada neurônio
             x+=(self.layers[i].input_number*self.layers[i].neuron_number)+self.layers[i].neuron_number # neuron_number também é a quantidade de viéses que tem na camada
             self.layers[i].load(new_parameters)
+
+    # ---------------------------------------
+
+    def backward(self, inputs, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
+        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
+        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
+        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
+        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*output error term)
+        
+        if len(expected_values) != len(predicted_values):
+            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
+            raise InvalidInputSizeException
+        
+        # Pegando todos os pesos em um formato organizado
+        all_weights = {} # Sim, um dicionário, não lista
+        for i in range(0,len(self.layers)):
+            all_weights[f"Camada {i+1}"] = {} # Sim, outro dicionário dentro do dicionário
+            for j in range(0, len(self.layers[i].neurons)):
+                all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"] = (self.layers[i].neurons[j].weights + [self.layers[i].neurons[j].bias])
+        #print(all_weights) # Teste!!
+
+        all_hidden_outputs = self.output_training(inputs)
+        for i in range(0,self.layers[-1].neuron_number):
+            del(all_hidden_outputs[-(self.layers[-1].neuron_number)+i]) # Apagando os valores de saída da camada final do vetor
+        output_backup = all_hidden_outputs.copy()
+
+        layers_list = list(all_weights.keys())
+        for x in range(0, len(predicted_values)):
+            all_hidden_outputs = output_backup.copy() # Reseta ao normal
+            output_unit_error = predicted_values[x]*(1-predicted_values[x])*self.error_function(expected_values, predicted_values)[x]
+            gradient = self.learning_rate * output_unit_error * predicted_values[x]
+            for i in range(0,len(all_weights[layers_list[-1]][f"Neurônio {x+1}"])):
+                all_weights[layers_list[-1]][f"Neurônio {x+1}"][i] += gradient # Atualiza o neurônio da saída responsável
+            for i in range(0,len(self.layers)-1): # Não vai até a última camada
+                for j in range(0, len(self.layers[i].neurons)):
+                    # Aqui chegamos nos neurônios em si
+                    for k in range(0, len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"])):
+                        #print(f"{len(all_weights[f'Camada {i+1}'][f'Neurônio {j+1}'])} ---- {len(all_hidden_outputs)}")
+                        # Aqui chegamos nos pesos de cada neurônio
+                        hidden_unit_error = all_hidden_outputs[0] * (1-all_hidden_outputs[0]) * (all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]*output_unit_error) # WIP!!!!!!!!!!
+                        if k+1 != len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]):
+                            gradient = self.learning_rate * hidden_unit_error * predicted_values[x]
+                        else:
+                            gradient = self.learning_rate * hidden_unit_error
+                        #print(f'Peso antigo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]} - ', end="") # Teste!!
+                        all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k] += gradient
+                        #print(f'Peso novo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]}') # Teste!!
+                    try: # Não deveria rodar na última
+                        del(all_hidden_outputs[0]) # Remove o primeiro da lista porque os neurônios são percorridos em ordem, teoricamente
+                    except IndexError:
+                        pass
+
+        new_weights = [] # Voltando os pesos para um formato que dá pra carregar usando o método load
+        for i in range(0,len(self.layers)):
+            for j in range(0, len(self.layers[i].neurons)):
+                for weight in all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]:
+                    new_weights.append(weight)
+        #print(new_weights)
+
+        self.load(new_weights) # Carregando os pesos modificados
 
     # ---------------------------------------
 
@@ -410,6 +535,30 @@ def test_save_and_load_from_file():
     #writeLog(weights, "test_weights") # Salvando pesos
     the_saved_network.open_black_box()
 
+def test_training():
+    print("\\---------- Teste de Treinamento -----------/")
+    the_custom_network = Custom_MLP([   # Três camadas com tamanhos diferentes
+                             Layer(3,8), # OBS: (número de neurônios, número de entradas)
+                             Layer(4,3),
+                             Layer(4,4)  # OBS: número de neurônios da última camada vai ser o tamanho da saída 
+                        ])
+    input_values=[3,4,5,8,1,1,0,0]
+    expected_output = [0.85, 1, 0.73, 0]
+    output_value = the_custom_network.output(input_values)
+    # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
+    print(f"Saída predita: {output_value}")
+    print(f"Saída esperada: {expected_output}")
+    print(f"Erros: {mse(expected_output, output_value)}")
+    print("-------- Badpropagation --------")
+    for i in range(0,10000):
+        the_custom_network.backward(input_values, expected_output, output_value) # inputs, expected_values, predicted_values
+        output_value = the_custom_network.output(input_values)
+    output_value = the_custom_network.output(input_values)
+    # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
+    print(f"Saída predita 2: {output_value}")
+    print(f"Saída esperada 2: {expected_output}")
+    print(f"Erros 2: {mse(expected_output, output_value)}")
+
 # ---------------------------------------
 
 def main(): # Função principal
@@ -427,7 +576,9 @@ def main(): # Função principal
     # ---------------------------------------
     #test_save_and_load_with_mlp()
     # ---------------------------------------
-    test_save_and_load_from_file()
+    #test_save_and_load_from_file()
+    # ---------------------------------------
+    test_training()
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 
