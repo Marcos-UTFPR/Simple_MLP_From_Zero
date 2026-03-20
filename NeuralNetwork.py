@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import random
+import math
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Constantes -----------------------------------------------------------------------------------------------------------------------------------------
@@ -20,10 +21,10 @@ BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 END = '\033[0m'
 
-MAX_WEIGHT = 2  # Valor máximo dos pesos e bias
-MIN_WEIGHT = -2 # Valor mínimo dos pesos e bias
+MAX_WEIGHT = 1  # Valor máximo dos pesos e bias (Default: 2)
+MIN_WEIGHT = -1 # Valor mínimo dos pesos e bias (Default: -2)
 
-DEFAULT_LEARNING_RATE = 0.1 # Valor padrão da Taxa de Aprendizado (Default: 0.1)
+DEFAULT_LEARNING_RATE = 0.01 # Valor padrão da Taxa de Aprendizado (Default: 0.1)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Exceções -------------------------------------------------------------------------------------------------------------------------------------------
@@ -47,7 +48,10 @@ def step_function(x): # Função de ativação básica
 def relu(x): # Função de ativação ReLU
     return max(0, x)
 
-DEFAULT_ACTIVATION_FUNCTION = relu 
+def sig(x):
+    return 1/(1 + math.exp(-x))
+
+DEFAULT_ACTIVATION_FUNCTION = sig # (Default: sig)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Funções de erro ------------------------------------------------------------------------------------------------------------------------------------
@@ -68,7 +72,7 @@ def mse(expected_values, predicted_values): # Mean Squared Error (MSE)
         errors[i] = errors[i] ** 2
     return errors
 
-DEFAULT_ERROR_FUNCTION = mse
+DEFAULT_ERROR_FUNCTION = mse # (Default: mse)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------
 # Funções auxiliares ---------------------------------------------------------------------------------------------------------------------------------
@@ -392,9 +396,10 @@ class Custom_MLP(): # Multilayer Perceptron customizável
         layers_list = list(all_weights.keys())
         for x in range(0, len(predicted_values)):
             all_hidden_outputs = output_backup.copy() # Reseta ao normal
-            output_unit_error = predicted_values[i]*(1-predicted_values[x])*self.error_function(expected_values, predicted_values)[x]
+            output_unit_error = predicted_values[x]*(1-predicted_values[x])*self.error_function(expected_values, predicted_values)[x]
             gradient = self.learning_rate * output_unit_error * predicted_values[x]
-            all_weights[layers_list[-1]][f"Neurônio {x+1}"][x] += gradient # Atualiza o neurônio da saída responsável
+            for i in range(0,len(all_weights[layers_list[-1]][f"Neurônio {x+1}"])):
+                all_weights[layers_list[-1]][f"Neurônio {x+1}"][i] += gradient # Atualiza o neurônio da saída responsável
             for i in range(0,len(self.layers)-1): # Não vai até a última camada
                 for j in range(0, len(self.layers[i].neurons)):
                     # Aqui chegamos nos neurônios em si
@@ -402,7 +407,10 @@ class Custom_MLP(): # Multilayer Perceptron customizável
                         #print(f"{len(all_weights[f'Camada {i+1}'][f'Neurônio {j+1}'])} ---- {len(all_hidden_outputs)}")
                         # Aqui chegamos nos pesos de cada neurônio
                         hidden_unit_error = all_hidden_outputs[0] * (1-all_hidden_outputs[0]) * (all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]*output_unit_error) # WIP!!!!!!!!!!
-                        gradient = self.learning_rate * hidden_unit_error * predicted_values[x]
+                        if k+1 != len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]):
+                            gradient = self.learning_rate * hidden_unit_error * predicted_values[x]
+                        else:
+                            gradient = self.learning_rate * hidden_unit_error
                         #print(f'Peso antigo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]} - ', end="") # Teste!!
                         all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k] += gradient
                         #print(f'Peso novo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]}') # Teste!!
@@ -535,14 +543,14 @@ def test_training():
                              Layer(4,4)  # OBS: número de neurônios da última camada vai ser o tamanho da saída 
                         ])
     input_values=[3,4,5,8,1,1,0,0]
-    expected_output = [0.85, 1.32, 0.73, 0]
+    expected_output = [0.85, 1, 0.73, 0]
     output_value = the_custom_network.output(input_values)
     # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
     print(f"Saída predita: {output_value}")
     print(f"Saída esperada: {expected_output}")
     print(f"Erros: {mse(expected_output, output_value)}")
     print("-------- Badpropagation --------")
-    for i in range(0,3000):
+    for i in range(0,10000):
         the_custom_network.backward(input_values, expected_output, output_value) # inputs, expected_values, predicted_values
         output_value = the_custom_network.output(input_values)
     output_value = the_custom_network.output(input_values)
