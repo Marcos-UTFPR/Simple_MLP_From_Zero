@@ -56,6 +56,7 @@ def rodar_episodio(snake, visualizar=False):
             passos += 1
 
             if passos >= PASSOS_MAX:
+                print("Limite de passos!")
                 break
 
         except DefeatException:
@@ -89,7 +90,7 @@ def main():
         agente.decair_epsilon()
 
         # Log a cada 10 episódios
-        if episodio % 10 == 0:
+        if episodio % 1 == 0:
             print(f"Episódio {episodio:>5} / {EPISODIOS} "
                   f"| Score: {score:>3} "
                   f"| Melhor: {melhor_score:>3} "
