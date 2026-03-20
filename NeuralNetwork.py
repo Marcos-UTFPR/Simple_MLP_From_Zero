@@ -1,3 +1,6 @@
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Versão experimental feita com ajuda do Claude para entender onde eu estava errando na branch dev ---------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
 import os
 import sys
 import time
@@ -289,16 +292,80 @@ class BuiltIn_MLP: # Multilayer Perceptron, com X camadas, todas com Y neurônio
 
     # ---------------------------------------
 
-    def backward(self, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
-        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
-        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
-        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
-        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*error term final​)
-        
+    def backward(self, inputs, expected_values, predicted_values):
         if len(expected_values) != len(predicted_values):
-            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
             raise InvalidInputSizeException
-        pass
+
+        # Forward pass completo, guardando saídas separadas por camada
+        layer_outputs = []
+        current = inputs
+        for layer in self.layers:
+            current = layer.output(current)
+            layer_outputs.append(list(current))
+        # layer_outputs[0] = saídas da camada 1, layer_outputs[1] = camada 2, etc.
+        # layer_outputs[-1] = saídas da última camada = predicted_values
+
+        # Entrada de cada camada:
+        # camada 0 recebe os inputs originais
+        # camada i recebe layer_outputs[i-1]
+        layer_inputs = [list(inputs)] + layer_outputs[:-1]
+
+        # -------------------------------------------------------
+        # Calculando os deltas da camada de saída
+        # delta = derivada_da_ativacao * (previsto - esperado)
+        # derivada da sigmoid = saida * (1 - saida)
+        # -------------------------------------------------------
+        deltas = [None] * len(self.layers)
+
+        output_deltas = []
+        for j in range(self.layers[-1].neuron_number):
+            saida = layer_outputs[-1][j]
+            erro = saida - expected_values[j]  # previsto - esperado
+            delta = saida * (1 - saida) * erro
+            output_deltas.append(delta)
+        deltas[-1] = output_deltas
+
+        # -------------------------------------------------------
+        # Calculando os deltas das camadas escondidas, de trás pra frente
+        # delta_i = derivada_da_ativacao_i * soma(peso_ij * delta_j)
+        # onde j percorre todos os neurônios da camada SEGUINTE
+        # e peso_ij é o peso da conexão de i para j (guardado no neurônio j)
+        # -------------------------------------------------------
+        for i in range(len(self.layers) - 2, -1, -1):  # da penúltima até a primeira
+            layer_deltas = []
+            next_layer = self.layers[i + 1]
+            next_deltas = deltas[i + 1]
+
+            for j in range(self.layers[i].neuron_number):
+                saida = layer_outputs[i][j]
+
+                # Soma: para cada neurônio da camada seguinte,
+                # pega o peso que conecta o neurônio j (desta camada) a ele,
+                # e multiplica pelo delta daquele neurônio
+                soma = 0
+                for k in range(next_layer.neuron_number):
+                    peso_j_para_k = next_layer.neurons[k].weights[j]
+                    soma += peso_j_para_k * next_deltas[k]
+
+                delta = saida * (1 - saida) * soma
+                layer_deltas.append(delta)
+
+            deltas[i] = layer_deltas
+
+        # -------------------------------------------------------
+        # Atualizando os pesos
+        # novo_peso = peso_atual - learning_rate * delta_destino * saida_origem
+        # novo_bias  = bias_atual - learning_rate * delta_destino
+        # -------------------------------------------------------
+        for i in range(len(self.layers)):
+            entradas_desta_camada = layer_inputs[i]
+            for j in range(self.layers[i].neuron_number):
+                delta_j = deltas[i][j]
+                for k in range(len(self.layers[i].neurons[j].weights)):
+                    saida_origem = entradas_desta_camada[k]
+                    self.layers[i].neurons[j].weights[k] -= self.learning_rate * delta_j * saida_origem
+                # Bias: origem imaginária com saída 1, então não multiplica por nada
+                self.layers[i].neurons[j].bias -= self.learning_rate * delta_j
 
     # ---------------------------------------
 
@@ -312,7 +379,7 @@ class Custom_MLP(): # Multilayer Perceptron customizável
         self.error_function = error_function
         for layer in self.layers:
             #print(f"Teste do assert: {str(type(layer))} e {type(layer)}")
-            if str(type(layer)) != "<class '__main__.Layer'>":
+            if not isinstance(layer, Layer):
                 raise InvalidInputSizeException
 
      # ---------------------------------------
@@ -370,63 +437,80 @@ class Custom_MLP(): # Multilayer Perceptron customizável
 
     # ---------------------------------------
 
-    def backward(self, inputs, expected_values, predicted_values): # Backward Pass, where gradients flow backward through the network to update the weights
-        # Fórmula Gradiente -> Δwij ​=η * δj* Oj​ (O quanto mudar = Learning Rate * unit error calculado * Saída do neurônio j)
-        # Fórmular novo peso -> w​(new)= gradiente calculado + peso atual
-        # Fórmula Output Unit Error -> δx ​= saída final * ​(1−saída final​) * (erro da saída final​)
-        # Fórmula Hidden Unit Error -> δi ​= saída do neurônio * (1−saída do neurônio​)(peso​*output error term)
-        
+    def backward(self, inputs, expected_values, predicted_values):
         if len(expected_values) != len(predicted_values):
-            #print(f"Teste do assert: {len(expected_values)} e {len(predicted_values)}")
             raise InvalidInputSizeException
-        
-        # Pegando todos os pesos em um formato organizado
-        all_weights = {} # Sim, um dicionário, não lista
-        for i in range(0,len(self.layers)):
-            all_weights[f"Camada {i+1}"] = {} # Sim, outro dicionário dentro do dicionário
-            for j in range(0, len(self.layers[i].neurons)):
-                all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"] = (self.layers[i].neurons[j].weights + [self.layers[i].neurons[j].bias])
-        #print(all_weights) # Teste!!
 
-        all_hidden_outputs = self.output_training(inputs)
-        for i in range(0,self.layers[-1].neuron_number):
-            del(all_hidden_outputs[-(self.layers[-1].neuron_number)+i]) # Apagando os valores de saída da camada final do vetor
-        output_backup = all_hidden_outputs.copy()
+        # Forward pass completo, guardando saídas separadas por camada
+        layer_outputs = []
+        current = inputs
+        for layer in self.layers:
+            current = layer.output(current)
+            layer_outputs.append(list(current))
+        # layer_outputs[0] = saídas da camada 1, layer_outputs[1] = camada 2, etc.
+        # layer_outputs[-1] = saídas da última camada = predicted_values
 
-        layers_list = list(all_weights.keys())
-        for x in range(0, len(predicted_values)):
-            all_hidden_outputs = output_backup.copy() # Reseta ao normal
-            output_unit_error = predicted_values[x]*(1-predicted_values[x])*self.error_function(expected_values, predicted_values)[x]
-            gradient = self.learning_rate * output_unit_error * predicted_values[x]
-            for i in range(0,len(all_weights[layers_list[-1]][f"Neurônio {x+1}"])):
-                all_weights[layers_list[-1]][f"Neurônio {x+1}"][i] += gradient # Atualiza o neurônio da saída responsável
-            for i in range(0,len(self.layers)-1): # Não vai até a última camada
-                for j in range(0, len(self.layers[i].neurons)):
-                    # Aqui chegamos nos neurônios em si
-                    for k in range(0, len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"])):
-                        #print(f"{len(all_weights[f'Camada {i+1}'][f'Neurônio {j+1}'])} ---- {len(all_hidden_outputs)}")
-                        # Aqui chegamos nos pesos de cada neurônio
-                        hidden_unit_error = all_hidden_outputs[0] * (1-all_hidden_outputs[0]) * (all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]*output_unit_error) # WIP!!!!!!!!!!
-                        if k+1 != len(all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]):
-                            gradient = self.learning_rate * hidden_unit_error * predicted_values[x]
-                        else:
-                            gradient = self.learning_rate * hidden_unit_error
-                        #print(f'Peso antigo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]} - ', end="") # Teste!!
-                        all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k] += gradient
-                        #print(f'Peso novo: {all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"][k]}') # Teste!!
-                    try: # Não deveria rodar na última
-                        del(all_hidden_outputs[0]) # Remove o primeiro da lista porque os neurônios são percorridos em ordem, teoricamente
-                    except IndexError:
-                        pass
+        # Entrada de cada camada:
+        # camada 0 recebe os inputs originais
+        # camada i recebe layer_outputs[i-1]
+        layer_inputs = [list(inputs)] + layer_outputs[:-1]
 
-        new_weights = [] # Voltando os pesos para um formato que dá pra carregar usando o método load
-        for i in range(0,len(self.layers)):
-            for j in range(0, len(self.layers[i].neurons)):
-                for weight in all_weights[f"Camada {i+1}"][f"Neurônio {j+1}"]:
-                    new_weights.append(weight)
-        #print(new_weights)
+        # -------------------------------------------------------
+        # Calculando os deltas da camada de saída
+        # delta = derivada_da_ativacao * (previsto - esperado)
+        # derivada da sigmoid = saida * (1 - saida)
+        # -------------------------------------------------------
+        deltas = [None] * len(self.layers)
 
-        self.load(new_weights) # Carregando os pesos modificados
+        output_deltas = []
+        for j in range(self.layers[-1].neuron_number):
+            saida = layer_outputs[-1][j]
+            erro = saida - expected_values[j]  # previsto - esperado
+            delta = saida * (1 - saida) * erro
+            output_deltas.append(delta)
+        deltas[-1] = output_deltas
+
+        # -------------------------------------------------------
+        # Calculando os deltas das camadas escondidas, de trás pra frente
+        # delta_i = derivada_da_ativacao_i * soma(peso_ij * delta_j)
+        # onde j percorre todos os neurônios da camada SEGUINTE
+        # e peso_ij é o peso da conexão de i para j (guardado no neurônio j)
+        # -------------------------------------------------------
+        for i in range(len(self.layers) - 2, -1, -1):  # da penúltima até a primeira
+            layer_deltas = []
+            next_layer = self.layers[i + 1]
+            next_deltas = deltas[i + 1]
+
+            for j in range(self.layers[i].neuron_number):
+                saida = layer_outputs[i][j]
+
+                # Soma: para cada neurônio da camada seguinte,
+                # pega o peso que conecta o neurônio j (desta camada) a ele,
+                # e multiplica pelo delta daquele neurônio
+                soma = 0
+                for k in range(next_layer.neuron_number):
+                    peso_j_para_k = next_layer.neurons[k].weights[j]
+                    soma += peso_j_para_k * next_deltas[k]
+
+                delta = saida * (1 - saida) * soma
+                layer_deltas.append(delta)
+
+            deltas[i] = layer_deltas
+
+        # -------------------------------------------------------
+        # Atualizando os pesos
+        # novo_peso = peso_atual - learning_rate * delta_destino * saida_origem
+        # novo_bias  = bias_atual - learning_rate * delta_destino
+        # -------------------------------------------------------
+        for i in range(len(self.layers)):
+            entradas_desta_camada = layer_inputs[i]
+            for j in range(self.layers[i].neuron_number):
+                delta_j = deltas[i][j]
+                for k in range(len(self.layers[i].neurons[j].weights)):
+                    saida_origem = entradas_desta_camada[k]
+                    self.layers[i].neurons[j].weights[k] -= self.learning_rate * delta_j * saida_origem
+                # Bias: origem imaginária com saída 1, então não multiplica por nada
+                self.layers[i].neurons[j].bias -= self.learning_rate * delta_j
 
     # ---------------------------------------
 
@@ -543,7 +627,7 @@ def test_training():
                              Layer(4,4)  # OBS: número de neurônios da última camada vai ser o tamanho da saída 
                         ])
     input_values=[3,4,5,8,1,1,0,0]
-    expected_output = [0.85, 1, 0.73, 0]
+    expected_output = [0.25, 1, 0.73, 0]
     output_value = the_custom_network.output(input_values)
     # Exemplo de saídas = [0, 30.775000000000002, 0, 0]
     print(f"Saída predita: {output_value}")
