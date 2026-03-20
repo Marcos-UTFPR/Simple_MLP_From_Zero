@@ -9,7 +9,7 @@ from NeuralNetwork import Custom_MLP, Layer, DQN_Agent
 
 EPISODIOS        = 1000   # Total de episódios de treino (Padrão: 1000)
 PASSOS_MAX       = 500    # Passos máximos por episódio (evita loop infinito - Padrão: 500)
-VISUALIZAR_A_CADA = 5    # Exibe a IA jogando a cada N episódios (Padrão: 50)
+VISUALIZAR_A_CADA = 50    # Exibe a IA jogando a cada N episódios (Padrão: 50)
 DELAY_VISUALIZACAO = 0.15 # Segundos entre cada frame ao visualizar (Padrão: 0.15)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------

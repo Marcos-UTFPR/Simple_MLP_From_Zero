@@ -533,10 +533,18 @@ class game:
             recompensa = 1.0 if dist_depois < dist_antes else -1.0
             return recompensa, False
 
-        elif elemento == "fruit":
-            self.mainPlayer.consume(new_cell)
-            self.mainTable.random_fruit()
-            return 10.0, False
+        if elemento == "empty":
+            self.mainPlayer.move(new_cell)
+            nova_col, nova_lin = self.mainPlayer.get_current_position()
+            fruit_position = self.mainTable.get_fruit_position()
+
+            if fruit_position is None:
+                self.mainTable.random_fruit()
+                fruit_position = self.mainTable.get_fruit_position()
+
+            dist_depois = abs(nova_col - fruit_position[0]) + abs(nova_lin - fruit_position[1])
+            recompensa = 1.0 if dist_depois < dist_antes else -1.0
+            return recompensa, False
 
         else:  # wall ou body
             raise DefeatException
